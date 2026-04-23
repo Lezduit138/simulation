@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FCFS Scheduling – Interactive Animation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff; --bg2: #f5f4f0; --bg3: #eeedea;
+      --text: #1a1a18; --text2: #6b6a65;
+      --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+      --info-bg: #e6f1fb; --info-text: #185fa5;
+      --radius: 10px; --radius-lg: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a; --bg2: #252522; --bg3: #2e2e2b;
+        --text: #e8e6df; --text2: #9c9a92;
+        --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+        --info-bg: #0c2a45; --info-text: #85b7eb;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg3); color: var(--text);
+      min-height: 100vh; padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 860px; margin: 0 auto;
+      background: var(--bg); border-radius: var(--radius-lg);
+      border: 0.5px solid var(--border); padding: 2rem;
+    }
+    h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 1.8rem; }
+    .section-title {
+      font-size: 12px; font-weight: 500; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px;
+    }
+
+    .algo-note {
+      font-size: 12px; color: var(--text2);
+      background: var(--bg2); border-radius: var(--radius);
+      padding: 8px 12px; margin-bottom: 1.4rem;
+      border-left: 3px solid var(--info-text);
+    }
+
+    .controls {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 1.8rem; flex-wrap: wrap;
+    }
+    button {
+      font-size: 13px; padding: 7px 16px;
+      border-radius: var(--radius); border: 0.5px solid var(--border2);
+      background: var(--bg); color: var(--text);
+      cursor: pointer; transition: background .15s; font-family: inherit;
+    }
+    button:hover { background: var(--bg2); }
+    button.primary { background: var(--info-bg); color: var(--info-text); border-color: transparent; }
+    .speed-wrap { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
+    input[type=range] { width: 80px; accent-color: var(--info-text); }
+
+    .table-wrap { overflow-x: auto; margin-bottom: 1.8rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      font-weight: 500; color: var(--text2); text-align: left;
+      padding: 7px 10px; border-bottom: 0.5px solid var(--border); white-space: nowrap;
+    }
+    td { padding: 7px 10px; white-space: nowrap; }
+    tr.highlight td { background: var(--info-bg); color: var(--info-text); }
+    .proc-dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; margin-right: 6px; vertical-align: middle;
+    }
+
+    .order-badge {
+      display: inline-block;
+      background: var(--bg3); color: var(--text2);
+      font-size: 10px; font-weight: 700;
+      border-radius: 4px; padding: 1px 5px;
+      margin-left: 4px; vertical-align: middle;
+    }
+
+    .queue-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+    .queue-row {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 1.8rem; flex-wrap: wrap;
+    }
+    .queue-box {
+      display: flex; align-items: center; justify-content: center;
+      width: 54px; height: 44px; border-radius: var(--radius);
+      border: 0.5px solid var(--border2); font-size: 12px; font-weight: 500;
+      transition: all .3s; position: relative;
+    }
+    .queue-box.in-cpu { transform: scale(1.15); box-shadow: 0 0 0 2px var(--info-text); }
+    .queue-box.done { opacity: 0.3; text-decoration: line-through; }
+    .cpu-badge {
+      position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+      font-size: 9px; font-weight: 500; background: var(--info-bg);
+      color: var(--info-text); border-radius: 3px; padding: 1px 4px; white-space: nowrap;
+    }
+    .arr-badge {
+      position: absolute; bottom: -11px; left: 50%; transform: translateX(-50%);
+      font-size: 9px; background: var(--bg3); color: var(--text2);
+      border-radius: 3px; padding: 1px 4px; white-space: nowrap;
+    }
+    .queue-sep { font-size: 12px; color: var(--text2); }
+
+    .gantt-wrap { overflow-x: auto; margin-bottom: 1.8rem; }
+    canvas { display: block; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px; margin-bottom: 1.8rem;
+    }
+    .stat-card { background: var(--bg2); border-radius: var(--radius); padding: 10px 14px; }
+    .stat-label { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+    .stat-val { font-size: 20px; font-weight: 500; }
+
+    .step-log {
+      font-size: 12px; color: var(--text2); line-height: 1.9;
+      border-left: 2px solid var(--border); padding-left: 10px;
+      max-height: 120px; overflow-y: auto;
+    }
+    .active-log { color: var(--info-text); font-weight: 500; }
+
+    .concepts {
+      background: var(--bg2); border-radius: var(--radius-lg);
+      padding: 1rem 1.2rem; margin-top: 1.8rem;
+      font-size: 13px; line-height: 1.8;
+    }
+    .concepts h3 { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+    .concept-row { display: flex; gap: 8px; margin-bottom: 4px; }
+    .concept-tag {
+      background: var(--info-bg); color: var(--info-text);
+      border-radius: 4px; padding: 1px 7px; font-size: 11px; font-weight: 500;
+      white-space: nowrap; align-self: flex-start; margin-top: 2px;
+    }
+    hr { border: none; border-top: 0.5px solid var(--border); margin: 1.5rem 0; }
+
+    /* STEPWISE SOLUTION */
+    .stepwise-section {
+      margin-top: 1.8rem;
+      border-top: 0.5px solid var(--border);
+      padding-top: 1.4rem;
+    }
+    .stepwise-header {
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; user-select: none; margin-bottom: 0;
+    }
+    .stepwise-header h3 { font-size: 14px; font-weight: 500; margin: 0; }
+    .stepwise-header .sw-sub { font-size: 12px; color: var(--text2); flex: 1; }
+    .sw-toggle { font-size: 11px; color: var(--text2); transition: transform .2s; }
+    .sw-toggle.open { transform: rotate(180deg); }
+
+    .stepwise-body { display: none; margin-top: 1.2rem; overflow-x: auto; }
+    .stepwise-body.open { display: block; }
+
+    .sw-formula-note {
+      margin-bottom: 12px; padding: 8px 12px;
+      background: var(--info-bg); border-radius: var(--radius);
+      font-size: 11.5px; color: var(--info-text); line-height: 1.8;
+    }
+
+    .sw-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .sw-table thead tr { background: var(--bg2); }
+    .sw-table th {
+      padding: 7px 12px; font-size: 11px; font-weight: 500; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 0.5px solid var(--border); white-space: nowrap; text-align: left;
+    }
+    .sw-table td {
+      padding: 8px 12px; border-bottom: 0.5px solid var(--border);
+      white-space: nowrap; vertical-align: middle;
+    }
+    .sw-table tr:last-child td { border-bottom: none; }
+    .sw-table tr:hover td { background: var(--bg2); }
+
+    .sw-proc-badge {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 5px;
+    }
+    .sw-val { font-weight: 600; }
+    .sw-formula { font-size: 11px; color: var(--text2); }
+
+    .sw-summary {
+      margin-top: 1rem; background: var(--bg2); border-radius: var(--radius);
+      padding: 12px 16px; font-size: 12px; color: var(--text2); line-height: 2;
+    }
+    .sw-summary b { color: var(--info-text); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>FCFS Scheduling <span style="font-size:14px;font-weight:400;color:var(--text2)">(First-Come, First-Served)</span></h1>
+  <p class="subtitle">Non-preemptive CPU scheduling — processes are executed in the order they arrive. The first process to arrive is the first to get the CPU. Press Play to animate.</p>
+
+  <div class="algo-note">
+    ℹ️ <strong>FCFS Rule:</strong> Processes are served strictly in arrival order. If two processes arrive at the same time, the one listed first (lower index) runs first. Once a process starts, it runs to completion.
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="btn-play" onclick="togglePlay()">▶ Play</button>
+    <button onclick="stepForward()">Step →</button>
+    <button onclick="resetAnim()">↺ Reset</button>
+    <div class="speed-wrap">
+      <span>Speed</span>
+      <input type="range" min="1" max="5" value="3" id="speed-slider">
+      <span id="speed-label">normal</span>
+    </div>
+  </div>
+
+  <p class="section-title">Process table</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Process</th><th>Arrival time</th><th>Burst time</th>
+          <th>Start time</th><th>Finish time</th><th>Waiting time</th><th>Turnaround time</th>
+        </tr>
+      </thead>
+      <tbody id="proc-tbody"></tbody>
+    </table>
+  </div>
+
+  <p class="section-title">Ready queue → CPU</p>
+  <div class="queue-label">Processes join the ready queue in <strong>arrival order</strong>. The front of the queue always runs next. Arrival time shown below each box.</div>
+  <div class="queue-row" id="queue-row"></div>
+
+  <p class="section-title">Gantt chart (CPU timeline)</p>
+  <div class="gantt-wrap"><canvas id="gantt-canvas" height="72"></canvas></div>
+
+  <p class="section-title">Live statistics</p>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Current time</div><div class="stat-val" id="st-time">0</div></div>
+    <div class="stat-card"><div class="stat-label">CPU utilisation</div><div class="stat-val" id="st-util">0%</div></div>
+    <div class="stat-card"><div class="stat-label">Avg waiting time</div><div class="stat-val" id="st-awt">—</div></div>
+    <div class="stat-card"><div class="stat-label">Avg turnaround</div><div class="stat-val" id="st-att">—</div></div>
+    <div class="stat-card"><div class="stat-label">Throughput</div><div class="stat-val" id="st-thru">—</div></div>
+  </div>
+
+  <p class="section-title">Execution log</p>
+  <div class="step-log" id="step-log"></div>
+
+  <hr>
+
+  <div class="concepts">
+    <h3>FCFS — Key Concepts</h3>
+    <div class="concept-row"><span class="concept-tag">Algorithm</span><span>Execute processes in arrival order. No decisions to make — earliest arrival always wins. Ties broken by process index.</span></div>
+    <div class="concept-row"><span class="concept-tag">Non-preemptive</span><span>Once a process occupies the CPU it runs until completion. No interruptions allowed regardless of what arrives.</span></div>
+    <div class="concept-row"><span class="concept-tag">Convoy Effect</span><span>A long process at the front blocks all shorter processes behind it, causing large waiting times — FCFS's main weakness.</span></div>
+    <div class="concept-row"><span class="concept-tag">Waiting time</span><span>Start time − Arrival time. Late-arriving short processes may wait a long time behind long ones.</span></div>
+    <div class="concept-row"><span class="concept-tag">Fairness</span><span>FCFS is fair in the sense that no process is ever starved — every process will eventually get CPU time.</span></div>
+    <div class="concept-row"><span class="concept-tag">vs SJF</span><span>FCFS ignores burst time; SJF uses it to minimize waiting time. FCFS is simpler but typically yields higher average waiting time.</span></div>
+  </div>
+
+  <!-- STEPWISE SOLUTION -->
+  <div class="stepwise-section">
+    <div class="stepwise-header" onclick="toggleStepwise()">
+      <h3>📋 Step-wise Solution</h3>
+      <span class="sw-sub">Full manual trace of FCFS scheduling decisions &amp; metric calculations</span>
+      <span class="sw-toggle open" id="sw-toggle">▼</span>
+    </div>
+    <div class="stepwise-body open" id="sw-body">
+
+      <div class="sw-formula-note">
+        <b>FCFS Rule:</b> When CPU is free, pick the arrived process with the <b>earliest arrival time</b>. Ties broken by process order. &nbsp;|&nbsp;
+        <b>WT</b> = Start − Arrival &nbsp;|&nbsp; <b>TAT</b> = Finish − Arrival &nbsp;|&nbsp; <b>Finish</b> = Start + Burst
+      </div>
+
+      <!-- Decision trace table -->
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>CPU Free At</th>
+            <th>Ready Queue (arrived, not done)</th>
+            <th>Selected</th>
+            <th>Why chosen</th>
+            <th>Start</th>
+            <th>Finish</th>
+            <th>WT</th>
+            <th>TAT</th>
+          </tr>
+        </thead>
+        <tbody id="sw-tbody"></tbody>
+      </table>
+
+      <br>
+
+      <!-- Per-process metrics table -->
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Process</th>
+            <th>Arrival</th>
+            <th>Burst</th>
+            <th>Start</th>
+            <th>Finish</th>
+            <th>WT = Start − Arrival</th>
+            <th>TAT = Finish − Arrival</th>
+          </tr>
+        </thead>
+        <tbody id="sw-summary-tbody"></tbody>
+      </table>
+
+      <div class="sw-summary" id="sw-summary"></div>
+    </div>
+  </div>
+
+</div>
+<script>
+  const COLORS = ['#7F77DD','#1D9E75','#D85A30','#D4537E','#378ADD','#BA7517'];
+  const LIGHT  = ['#EEEDFE','#E1F5EE','#FAECE7','#FBEAF0','#E6F1FB','#FAEEDA'];
+
+  const processes = [
+    { id:'P1', arrival:0, burst:5 },
+    { id:'P2', arrival:1, burst:3 },
+    { id:'P3', arrival:2, burst:8 },
+    { id:'P4', arrival:3, burst:2 },
+    { id:'P5', arrival:4, burst:4 },
+  ];
+
+  function computeFCFS(procs) {
+    const ps = procs.map(p => ({ ...p }));
+    const done = [];
+    let time = 0;
+    const remaining = [...ps];
+
+    while (remaining.length) {
+      const ready = remaining.filter(p => p.arrival <= time);
+      if (!ready.length) { time = Math.min(...remaining.map(p => p.arrival)); continue; }
+      // FCFS: sort by arrival, ties by original index
+      ready.sort((a, b) => a.arrival !== b.arrival ? a.arrival - b.arrival : procs.indexOf(a) - procs.indexOf(b));
+      const p = ready[0];
+      remaining.splice(remaining.indexOf(p), 1);
+      const start = time;
+      const finish = start + p.burst;
+      time = finish;
+      done.push({ ...p, start, finish, wait: start - p.arrival, turnaround: finish - p.arrival });
+    }
+    return done;
+  }
+
+  const scheduled = computeFCFS(processes);
+  const totalTime = scheduled[scheduled.length - 1].finish;
+  let currentTime = 0, playing = false, timer = null, logLines = [];
+
+  function pidIdx(id) { return processes.findIndex(p => p.id === id); }
+
+  function buildTable() {
+    const tbody = document.getElementById('proc-tbody');
+    tbody.innerHTML = '';
+    processes.forEach((p, i) => {
+      const tr = document.createElement('tr');
+      tr.id = 'row-' + p.id;
+      tr.innerHTML = `
+        <td><span class="proc-dot" style="background:${COLORS[i]}"></span>${p.id}</td>
+        <td>${p.arrival}</td><td>${p.burst}</td>
+        <td id="td-start-${p.id}">—</td><td id="td-finish-${p.id}">—</td>
+        <td id="td-wait-${p.id}">—</td><td id="td-tat-${p.id}">—</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function buildQueue() {
+    const row = document.getElementById('queue-row');
+    row.innerHTML = '';
+    const cpuBox = document.createElement('div');
+    cpuBox.className = 'queue-box'; cpuBox.id = 'cpu-box';
+    cpuBox.style.cssText = 'background:#E1F5EE;border-color:#1D9E75;color:#0F6E56;font-weight:500;';
+    cpuBox.innerHTML = '<span style="font-size:10px;font-weight:500;color:#0F6E56">CPU</span>';
+    row.appendChild(cpuBox);
+    const arr = document.createElement('span');
+    arr.className = 'queue-sep'; arr.textContent = '→';
+    row.appendChild(arr);
+    processes.forEach((p, i) => {
+      const box = document.createElement('div');
+      box.className = 'queue-box'; box.id = 'qbox-' + p.id;
+      box.style.cssText = `background:${LIGHT[i]};border-color:${COLORS[i]};color:${COLORS[i]};`;
+      box.textContent = p.id;
+      row.appendChild(box);
+      if (i < processes.length - 1) {
+        const sep = document.createElement('span'); sep.className = 'queue-sep'; sep.textContent = '|';
+        row.appendChild(sep);
+      }
+    });
+  }
+
+  function drawGantt() {
+    const canvas = document.getElementById('gantt-canvas');
+    const W = canvas.parentElement.clientWidth || 700;
+    canvas.width = W;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, 72);
+    const pad = 30, barH = 32, barY = 10;
+    const scale = (W - pad * 2) / totalTime;
+    const isDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+    const axisColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
+    const textColor = isDark ? '#9c9a92' : '#6b6a65';
+
+    ctx.strokeStyle = axisColor; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad, barY + barH + 2); ctx.lineTo(W - pad, barY + barH + 2); ctx.stroke();
+    ctx.fillStyle = textColor; ctx.font = '10px -apple-system,sans-serif'; ctx.textAlign = 'center';
+    for (let t = 0; t <= totalTime; t++) {
+      const x = pad + t * scale;
+      ctx.fillText(t, x, 68);
+      ctx.beginPath(); ctx.moveTo(x, barY + barH + 2); ctx.lineTo(x, barY + barH + 7);
+      ctx.strokeStyle = axisColor; ctx.stroke();
+    }
+    scheduled.forEach(p => {
+      if (p.start >= currentTime) return;
+      const i = pidIdx(p.id);
+      const drawEnd = Math.min(p.finish, currentTime);
+      const x = pad + p.start * scale; const w = (drawEnd - p.start) * scale;
+      ctx.fillStyle = COLORS[i]; ctx.globalAlpha = 0.88;
+      ctx.beginPath(); ctx.roundRect(x, barY, w, barH, 4); ctx.fill();
+      ctx.globalAlpha = 1;
+      if (w > 22) {
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px -apple-system,sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(p.id, x + w / 2, barY + barH / 2 + 4);
+      }
+    });
+    if (currentTime > 0 && currentTime < totalTime) {
+      const cx = pad + currentTime * scale;
+      ctx.strokeStyle = '#E24B4A'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(cx, barY - 4); ctx.lineTo(cx, barY + barH + 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  function getActive() {
+    return scheduled.find(p => p.start <= currentTime && p.finish > currentTime);
+  }
+
+  function updateUI() {
+    drawGantt();
+    const active = getActive();
+    const cpuBox = document.getElementById('cpu-box');
+    processes.forEach((p, i) => {
+      const sch = scheduled.find(s => s.id === p.id);
+      const box = document.getElementById('qbox-' + p.id);
+      const row = document.getElementById('row-' + p.id);
+      const done = sch && sch.finish <= currentTime;
+      const running = active && active.id === p.id;
+
+      box.classList.toggle('in-cpu', running);
+      box.classList.toggle('done', done);
+      box.style.opacity = p.arrival <= currentTime ? '1' : '0.3';
+
+      const oldC = box.querySelector('.cpu-badge'); if (oldC) oldC.remove();
+      const oldA = box.querySelector('.arr-badge'); if (oldA) oldA.remove();
+
+      if (running) {
+        const b = document.createElement('span'); b.className = 'cpu-badge'; b.textContent = 'running';
+        box.appendChild(b);
+      }
+      if (!done && p.arrival <= currentTime) {
+        const ab = document.createElement('span'); ab.className = 'arr-badge'; ab.textContent = `t=${p.arrival}`;
+        box.appendChild(ab);
+      }
+      if (row) row.classList.toggle('highlight', running);
+      if (sch && (done || running)) {
+        if (sch.start <= currentTime) {
+          const tdS = document.getElementById('td-start-' + p.id); if (tdS) tdS.textContent = sch.start;
+        }
+        if (done) {
+          const tdF = document.getElementById('td-finish-' + p.id); if (tdF) tdF.textContent = sch.finish;
+          const tdW = document.getElementById('td-wait-' + p.id); if (tdW) tdW.textContent = sch.wait;
+          const tdT = document.getElementById('td-tat-' + p.id); if (tdT) tdT.textContent = sch.turnaround;
+        }
+      }
+    });
+    cpuBox.innerHTML = active
+      ? `<span style="font-size:11px;font-weight:500;color:#0F6E56">${active.id}</span>`
+      : `<span style="font-size:10px;font-weight:500;color:#0F6E56">${currentTime >= totalTime ? 'idle' : 'CPU'}</span>`;
+
+    document.getElementById('st-time').textContent = currentTime;
+    const busy = scheduled.reduce((s, p) => s + Math.max(0, Math.min(p.finish, currentTime) - p.start), 0);
+    document.getElementById('st-util').textContent = currentTime > 0 ? Math.round(busy / currentTime * 100) + '%' : '0%';
+    const done = scheduled.filter(p => p.finish <= currentTime);
+    if (done.length) {
+      const awt = done.reduce((s, p) => s + p.wait, 0) / done.length;
+      const att = done.reduce((s, p) => s + p.turnaround, 0) / done.length;
+      document.getElementById('st-awt').textContent = awt.toFixed(1);
+      document.getElementById('st-att').textContent = att.toFixed(1);
+      document.getElementById('st-thru').textContent = (done.length / currentTime).toFixed(2) + '/t';
+    }
+  }
+
+  function addLog(msg, isActive = false) {
+    logLines.push({ msg, isActive });
+    const el = document.getElementById('step-log');
+    el.innerHTML = logLines.map(l => `<div class="${l.isActive ? 'active-log' : ''}">${l.msg}</div>`).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function stepForward() {
+    if (currentTime >= totalTime) return;
+    const prev = getActive();
+    currentTime++;
+    const curr = getActive();
+    if (!prev && curr) addLog(`t=${currentTime - 1}: CPU picks ${curr.id} (arrived at t=${curr.arrival}, first in queue)`, true);
+    else if (prev && curr && prev.id !== curr.id) {
+      const pp = scheduled.find(s => s.id === prev.id);
+      addLog(`t=${pp.finish}: ${prev.id} finished ✓  wait=${pp.wait}, turnaround=${pp.turnaround}`);
+      addLog(`t=${curr.start}: CPU picks ${curr.id} (arrived at t=${curr.arrival}, first in queue)`, true);
+    } else if (prev && !curr) {
+      const pp = scheduled.find(s => s.id === prev.id);
+      addLog(`t=${pp.finish}: ${prev.id} finished ✓  wait=${pp.wait}, turnaround=${pp.turnaround}`);
+      addLog(`t=${currentTime}: All processes done. CPU idle.`);
+    }
+    scheduled.forEach(p => {
+      if (p.arrival === currentTime - 1 && !(curr && curr.id === p.id))
+        addLog(`t=${p.arrival}: ${p.id} arrives → joins ready queue`);
+    });
+    updateUI();
+  }
+
+  function speedMs() {
+    const v = +document.getElementById('speed-slider').value;
+    const labels = ['slowest', 'slow', 'normal', 'fast', 'fastest'];
+    document.getElementById('speed-label').textContent = labels[v - 1];
+    return [1800, 1100, 650, 350, 150][v - 1];
+  }
+
+  function togglePlay() {
+    playing = !playing;
+    const btn = document.getElementById('btn-play');
+    if (playing) { btn.textContent = '⏸ Pause'; btn.classList.add('primary'); runTimer(); }
+    else { btn.textContent = '▶ Play'; btn.classList.remove('primary'); clearInterval(timer); }
+  }
+
+  function runTimer() {
+    clearInterval(timer);
+    timer = setInterval(() => {
+      if (currentTime >= totalTime) {
+        clearInterval(timer); playing = false;
+        document.getElementById('btn-play').textContent = '▶ Play';
+        document.getElementById('btn-play').classList.remove('primary');
+        return;
+      }
+      stepForward();
+    }, speedMs());
+  }
+
+  document.getElementById('speed-slider').oninput = () => { if (playing) { clearInterval(timer); runTimer(); } speedMs(); };
+
+  function resetAnim() {
+    clearInterval(timer); playing = false; currentTime = 0; logLines = [];
+    document.getElementById('btn-play').textContent = '▶ Play';
+    document.getElementById('btn-play').classList.remove('primary');
+    document.getElementById('step-log').innerHTML = '';
+    ['st-awt', 'st-att', 'st-thru'].forEach(id => document.getElementById(id).textContent = '—');
+    processes.forEach(p => {
+      ['start', 'finish', 'wait', 'tat'].forEach(k => {
+        const el = document.getElementById(`td-${k}-${p.id}`); if (el) el.textContent = '—';
+      });
+      const row = document.getElementById('row-' + p.id); if (row) row.classList.remove('highlight');
+      const box = document.getElementById('qbox-' + p.id);
+      if (box) { box.classList.remove('in-cpu', 'done'); box.style.opacity = '0.3'; }
+    });
+    updateUI();
+    addLog('Ready. Press ▶ Play or Step → to begin simulation.');
+  }
+
+  // STEPWISE SOLUTION
+  function buildStepwiseSolution() {
+    const tbody = document.getElementById('sw-tbody');
+    const stbody = document.getElementById('sw-summary-tbody');
+    const summary = document.getElementById('sw-summary');
+    if (!tbody) return;
+
+    const ps = processes.map(p => ({ ...p }));
+    const remaining = [...ps];
+    const done = [];
+    let time = 0;
+    let stepNum = 0;
+    let decisionHtml = '';
+
+    while (remaining.length) {
+      const ready = remaining.filter(p => p.arrival <= time);
+      if (!ready.length) {
+        time = Math.min(...remaining.map(p => p.arrival));
+        continue;
+      }
+
+      // FCFS: earliest arrival, then original order
+      const sorted = [...ready].sort((a, b) =>
+        a.arrival !== b.arrival ? a.arrival - b.arrival : processes.indexOf(a) - processes.indexOf(b)
+      );
+      const chosen = sorted[0];
+      const cpuFreeAt = time;
+
+      const readyBadges = sorted.map(p => {
+        const i = processes.findIndex(x => x.id === p.id);
+        const isChosen = p.id === chosen.id;
+        return `<span class="sw-proc-badge" style="
+          background:${LIGHT[i]};color:${COLORS[i]};
+          border:1.5px solid ${isChosen ? COLORS[i] : 'transparent'};
+          ${isChosen ? 'box-shadow:0 0 0 1px ' + COLORS[i] + ';' : ''}
+        ">${p.id} <span style="font-size:9px;color:${COLORS[i]};opacity:0.8">@t=${p.arrival}</span></span>`;
+      }).join(' ');
+
+      remaining.splice(remaining.indexOf(chosen), 1);
+      const start = time;
+      const finish = start + chosen.burst;
+      time = finish;
+      const wait = start - chosen.arrival;
+      const turnaround = finish - chosen.arrival;
+      done.push({ ...chosen, start, finish, wait, turnaround });
+
+      stepNum++;
+      const idx = processes.findIndex(x => x.id === chosen.id);
+      const why = sorted.length === 1
+        ? 'Only process in ready queue'
+        : `Earliest arrival (t=${chosen.arrival}) among ${sorted.length} ready processes`;
+
+      decisionHtml += `<tr>
+        <td style="color:var(--text2);font-size:11px">${stepNum}</td>
+        <td class="sw-val">${cpuFreeAt}</td>
+        <td><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">${readyBadges}</div></td>
+        <td>
+          <span class="sw-proc-badge" style="background:${LIGHT[idx]};color:${COLORS[idx]};border:1.5px solid ${COLORS[idx]};">
+            ${chosen.id}
+          </span>
+        </td>
+        <td class="sw-formula">${why}</td>
+        <td class="sw-val" style="color:${COLORS[idx]}">${start}</td>
+        <td class="sw-val" style="color:${COLORS[idx]}">${finish}</td>
+        <td class="sw-val">${wait}</td>
+        <td class="sw-val">${turnaround}</td>
+      </tr>`;
+    }
+
+    tbody.innerHTML = decisionHtml;
+
+    const byId = [...done].sort((a, b) => a.id.localeCompare(b.id));
+    let summaryHtml = '';
+    let totalWT = 0, totalTAT = 0;
+
+    byId.forEach(p => {
+      const i = processes.findIndex(x => x.id === p.id);
+      totalWT += p.wait;
+      totalTAT += p.turnaround;
+      summaryHtml += `<tr>
+        <td><span class="sw-proc-badge" style="background:${LIGHT[i]};color:${COLORS[i]};">${p.id}</span></td>
+        <td>${p.arrival}</td>
+        <td>${p.burst}</td>
+        <td class="sw-val" style="color:${COLORS[i]}">${p.start}</td>
+        <td class="sw-val" style="color:${COLORS[i]}">${p.finish}</td>
+        <td class="sw-formula">${p.start} − ${p.arrival} = <b>${p.wait}</b></td>
+        <td class="sw-formula">${p.finish} − ${p.arrival} = <b>${p.turnaround}</b></td>
+      </tr>`;
+    });
+
+    const n = done.length;
+    const awt = (totalWT / n).toFixed(2);
+    const atat = (totalTAT / n).toFixed(2);
+
+    summaryHtml += `<tr style="background:var(--bg2);font-weight:600;">
+      <td colspan="5" style="text-align:right;color:var(--text2);font-size:11px;padding-right:16px;">AVERAGES (n=${n})</td>
+      <td style="color:var(--info-text)">${totalWT}/${n} = <b>${awt}</b></td>
+      <td style="color:var(--info-text)">${totalTAT}/${n} = <b>${atat}</b></td>
+    </tr>`;
+
+    stbody.innerHTML = summaryHtml;
+
+    const execOrder = done.map(p => {
+      const idx = processes.findIndex(x => x.id === p.id);
+      return `<span class="sw-proc-badge" style="background:${LIGHT[idx]};color:${COLORS[idx]};">${p.id}</span>`;
+    }).join(' <span style="color:var(--text2)">→</span> ');
+
+    const maxWT = Math.max(...done.map(p => p.wait));
+    const worstWT = done.find(p => p.wait === maxWT);
+
+    summary.innerHTML = `
+      <b>Execution Order:</b> &nbsp;${execOrder}<br>
+      <b>Avg Waiting Time:</b> ${awt} &emsp;
+      <b>Avg Turnaround:</b> ${atat} &emsp;
+      <b>CPU Utilisation:</b> ${Math.round(done.reduce((s, p) => s + p.burst, 0) / totalTime * 100)}%
+      <br>
+      <span style="color:var(--text2);font-size:11px;">
+        💡 <b>P1 runs first</b> at t=0 because it is the only arrived process. FCFS simply serves processes in arrival order — no burst time or priority is considered.
+        ${worstWT ? `<b>${worstWT.id}</b> has the longest waiting time (${worstWT.wait} units), illustrating the <b>convoy effect</b> — long processes can delay many shorter ones behind them.` : ''}
+      </span>`;
+  }
+
+  function toggleStepwise() {
+    const body = document.getElementById('sw-body');
+    const icon = document.getElementById('sw-toggle');
+    const isOpen = body.classList.toggle('open');
+    icon.classList.toggle('open', isOpen);
+  }
+
+  buildTable(); buildQueue(); resetAnim(); buildStepwiseSolution();
+  window.addEventListener('resize', drawGantt);
+</script>
+</body>
+</html>
